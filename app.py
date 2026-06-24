@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import os
@@ -8,42 +7,39 @@ FILE = "data.csv"
 
 st.set_page_config(page_title="Jeovanny Tequeños", layout="centered")
 
-# 🎨 DESIGN CORRIGÉ ✅
-st.markdown(
-    """
-    <style>
-    html, body {
-        background-color: #0F172A;
-        color: white;
-    }
+# 🎨 DESIGN SIMPLE
+st.markdown("""
+<style>
+html, body {
+    background-color: #0F172A;
+    color: white;
+}
 
-    h1 {
-        text-align: center;
-        color: #22c55e;
-    }
+h1 {
+    text-align: center;
+    color: #22c55e;
+}
 
-    .card {
-        background: #1E293B;
-        padding: 15px;
-        border-radius: 10px;
-        text-align: center;
-        color: white;
-    }
+.card {
+    background: #1E293B;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    color: white;
+}
 
-    .stButton>button {
-        background: #22c55e;
-        color: white;
-        border-radius: 10px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+.stButton>button {
+    background: #22c55e;
+    color: white;
+    border-radius: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ✅ TITRE
 st.markdown("<h1>🌮 Jeovanny Tequeños</h1>", unsafe_allow_html=True)
 
-# 💰 PRIX & COÛTS
+# ✅ PRICES
 PRICES = {"Tequeños": 4, "Pasteles": 5}
 COSTS = {"Tequeños": 2, "Pasteles": 3}
 
@@ -56,7 +52,7 @@ else:
         "monto","costo","beneficio","fecha"
     ])
 
-# ✅ CLEAN
+# ✅ CLEAN DATA
 df = df.dropna(how="all")
 df = df[df["tipo"].notna()]
 
@@ -84,9 +80,9 @@ if tipo == "Venta":
     costo = cantidad * costo_unitario
     beneficio = monto - costo
 
-    st.info(f"💰 Ingreso: ${monto}")
-    st.warning(f"💸 Costo producción: ${costo}")
-    st.success(f"✅ Ganancia: ${beneficio}")
+    st.info("💰 Ingreso: $" + str(monto))
+    st.warning("💸 Costo: $" + str(costo))
+    st.success("✅ Ganancia: $" + str(beneficio))
 
 # ✅ GASTO
 elif tipo == "Gasto":
@@ -98,11 +94,11 @@ elif tipo == "Gasto":
     costo = monto
     beneficio = -monto
 
-    st.warning(f"💸 Gasto total: ${monto}")
+    st.warning("💸 Gasto total: $" + str(monto))
 
 fecha = st.date_input("Fecha", value=date.today())
 
-# 💾 SAVE
+# ✅ SAVE
 if st.button("Agregar"):
     nueva = pd.DataFrame([{
         "tipo": tipo,
@@ -120,7 +116,7 @@ if st.button("Agregar"):
 
     st.success("✅ Guardado")
 
-# ✅ AFFICHAGE
+# ✅ DISPLAY SEULEMENT SI DONNÉES
 if len(df) > 0:
 
     st.subheader("📋 Historial")
@@ -134,30 +130,23 @@ if len(df) > 0:
 
     col1, col2, col3 = st.columns(3)
 
-    col1.markdown(f"""
-    <div class="card">
-    💰 Ingresos<br><b>${ingresos:.2f}</b>
-    </div>
-    """, unsafe_allow_html=True)
+    with col1:
+        st.markdown("<div class='card'>💰 Ingresos</div>", unsafe_allow_html=True)
+        st.write(f"${ingresos:.2f}")
 
-    col2.markdown(f"""
-    <div class="card">
-    💸 Gastos<br><b>${gastos:.2f}</b>
-    </div>
-    """, unsafe_allow_html=True)
+    with col2:
+        st.markdown("<div class='card'>💸 Gastos</div>", unsafe_allow_html=True)
+        st.write(f"${gastos:.2f}")
 
-    col3.markdown(f"""
-    <div class="card">
-    ✅ Beneficio<br><b>${beneficio_total:.2f}</b>
-    </div>
-    """, unsafe_allow_html=True)
+    with col3:
+        st.markdown("<div class='card'>✅ Beneficio</div>", unsafe_allow_html=True)
+        st.write(f"${beneficio_total:.2f}")
 
 else:
     st.info("📭 No hay datos todavía")
 
-# RESET
+# ✅ RESET
 if st.button("⚠️ Borrar todo"):
     df = pd.DataFrame(columns=df.columns)
     df.to_csv(FILE, index=False)
     st.warning("Datos eliminados")
-\`\`
