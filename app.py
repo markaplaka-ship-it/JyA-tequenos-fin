@@ -7,83 +7,62 @@ FILE = "data.csv"
 
 st.set_page_config(page_title="Jeovanny Tequeños", layout="centered")
 
-# 🎨 DESIGN PREMIUM
+# 🎨 DESIGN PREMIUM (lisible)
 st.markdown("""
 <style>
-html, body, [class*="css"] {
-    background: linear-gradient(180deg, #020617, #0F172A);
+html, body {
+    background-color: #0F172A;
     color: #E2E8F0;
-}
-
-.block-container {
-    padding-top: 2rem;
 }
 
 h1 {
     text-align: center;
-    font-size: 2.2em;
-    background: linear-gradient(90deg, #22c55e, #3b82f6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #22c55e;
 }
 
 .card {
     background: #1E293B;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
+    padding: 15px;
+    border-radius: 10px;
     text-align: center;
 }
 
-.value {
-    font-size: 24px;
-    font-weight: bold;
+/* Tableau lisible */
+[data-testid="stDataFrame"] {
+    background-color: #1E293B !important;
 }
 
-.green { color: #22c55e; }
-.red { color: #ef4444; }
-.blue { color: #3b82f6; }
-
 .stButton>button {
-    background: linear-gradient(90deg, #22c55e, #15803d);
+    background: #22c55e;
     color: white;
-    border-radius: 12px;
-    height: 48px;
-    font-size: 16px;
-    font-weight: bold;
-    border: none;
+    border-radius: 10px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# HEADER
-st.markdown("<h1>🌮 Jeovanny Tequeños Dashboard</h1>", unsafe_allow_html=True)
-st.caption("📊 Control financiero simple y profesional")
+# 🧾 TITRE
+st.markdown("<h1>🌮 Jeovanny Tequeños</h1>", unsafe_allow_html=True)
 
-# 💰 PRIX & COÛTS
-PRICES = {
-    "Tequeños": 4,
-    "Pasteles": 5
-}
+# 💰 PRIX & COUTS
+PRICES = {"Tequeños": 4, "Pasteles": 5}
+COSTS = {"Tequeños": 2, "Pasteles": 3}
 
-COSTS = {
-    "Tequeños": 2,
-    "Pasteles": 3
-}
-
-# 📂 CHARGEMENT DATA
+# 📂 LOAD
 if os.path.exists(FILE):
     df = pd.read_csv(FILE)
 else:
-    df = pd.DataFrame(columns=["tipo","producto","cantidad","precio_unitario","monto","costo","beneficio","fecha"])
+    df = pd.DataFrame(columns=[
+        "tipo","producto","cantidad","precio_unitario",
+        "monto","costo","beneficio","fecha"
+    ])
 
-# ➕ FORMULAIRE
+# ➕ FORM
 st.subheader("➕ Nueva transacción")
 
 tipo = st.selectbox("Tipo", ["Venta", "Gasto"])
 
-producto = "N/A"
+producto = ""
 cantidad = 0
 precio_unitario = 0
 monto = 0
@@ -92,7 +71,7 @@ beneficio = 0
 
 if tipo == "Venta":
     producto = st.selectbox("Producto", ["Tequeños", "Pasteles"])
-    cantidad = st.number_input("Cantidad vendida", min_value=1, step=1)
+    cantidad = st.number_input("Cantidad", min_value=1)
 
     precio_unitario = PRICES[producto]
     costo_unitario = COSTS[producto]
@@ -101,12 +80,20 @@ if tipo == "Venta":
     costo = cantidad * costo_unitario
     beneficio = monto - costo
 
-    st.info(f"💵 Total: ${monto}")
-    st.info(f"💸 Costo: ${costo}")
+    st.info(f"💵 Ingreso: ${monto}")
+    st.info(f"💸 Costo producción: ${costo}")
     st.success(f"✅ Ganancia: ${beneficio}")
 
-else:
-    monto = st.number_input("Monto gasto ($)", min_value=0.0)
+elif tipo == "Gasto":
+    producto = st.text_input("Artículo / Material")
+    cantidad = st.number_input("Cantidad", min_value=1)
+    precio_unitario = st.number_input("Precio unitario ($)", min_value=0.0)
+
+    monto = cantidad * precio_unitario
+    costo = monto  # gasto ajouté aux coûts
+    beneficio = -monto
+
+    st.warning(f"💸 Gasto total: ${monto}")
 
 fecha = st.date_input("Fecha", value=date.today())
 
@@ -128,47 +115,23 @@ if st.button("Agregar"):
 
     st.success("✅ Guardado")
 
-# 📊 AFFICHAGE
+# 📊 DISPLAY
 if not df.empty:
-    st.subheader("📋 Historial")
-    st.dataframe(df)
 
+    st.subheader("📋 Historial")
+
+    # ✅ TABLE LISIBLE
+    st.dataframe(df, use_container_width=True)
+
+    # ✅ CALCULS CORRECTS
     ingresos = df[df["tipo"] == "Venta"]["monto"].sum()
-    gastos = df[df["tipo"] == "Gasto"]["monto"].sum()
-    beneficio_total = df["beneficio"].sum()
+    gastos_produccion = df["costo"].sum()
+    beneficio_total = ingresos - gastos_produccion
 
     st.subheader("📊 Resumen")
 
     col1, col2, col3 = st.columns(3)
 
-    col1.markdown(f"""
-    <div class="card">
-        <div class="blue">💰 Ingresos</div>
-        <div class="value">${ingresos:.2f}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col2.markdown(f"""
-    <div class="card">
-        <div class="red">💸 Gastos</div>
-        <div class="value">${gastos:.2f}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col3.markdown(f"""
-    <div class="card">
-        <div class="green">✅ Beneficio</div>
-        <div class="value">${beneficio_total:.2f}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # 📈 GRAPH
-    st.subheader("📈 Ventas por producto")
-    ventas_producto = df[df["tipo"] == "Venta"].groupby("producto")["monto"].sum()
-    st.bar_chart(ventas_producto)
-
-# RESET
-if st.button("⚠️ Borrar todo"):
-    df = pd.DataFrame(columns=df.columns)
-    df.to_csv(FILE, index=False)
-    st.warning("Datos eliminados")
+    col1.markdown(f"<div class='card'>💰 Ingreso<br><b>${ingresos:.2f}</b></div>", unsafe_allow_html=True)
+    col2.markdown(f"<div class='card'>💸 Gastos<br><b>${gastos_produccion:.2f}</b></div>", unsafe_allow_html=True)
+    col3.markdown(f"<div class='card'>✅ Beneficio<br><b>${beneficio_total:.2f}</b></div>", unsafe_allow_html=True)
