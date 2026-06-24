@@ -7,26 +7,23 @@ FILE = "data.csv"
 
 st.set_page_config(page_title="Tequeños Business", layout="centered")
 
-# 🎨 UI PRO
+# 🎨 UI
 st.markdown("""
 <style>
 body {
     background-color: #0F172A;
     color: white;
 }
-
 h1 {
     text-align:center;
     color:#22c55e;
 }
-
 .section {
     background:#1E293B;
     padding:15px;
     border-radius:10px;
     margin-bottom:20px;
 }
-
 .stButton>button {
     background:#22c55e;
     color:white;
@@ -39,7 +36,6 @@ h1 {
 st.markdown("<h1>🌮 Jeovanny Tequeños</h1>", unsafe_allow_html=True)
 st.caption("📊 Gestión financiera profesional")
 
-# PARAMÈTRES
 PRICES = {"Tequeños": 4, "Pasteles": 5}
 COSTS = {"Tequeños": 2, "Pasteles": 3}
 
@@ -68,7 +64,7 @@ if uploaded_file is not None:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ➕ FORMULAIRE
+# ➕ FORM
 st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.subheader("➕ Nueva transacción")
 
@@ -81,7 +77,6 @@ monto = 0.0
 costo = 0.0
 beneficio = 0.0
 
-# ✅ VENTAS
 if tipo == "Venta":
     producto = st.selectbox("Producto", ["Tequeños", "Pasteles"])
     cantidad = st.number_input("Cantidad", min_value=1)
@@ -97,7 +92,6 @@ if tipo == "Venta":
     st.warning(f"💸 Costo producción: ${costo}")
     st.success(f"✅ Ganancia: ${beneficio}")
 
-# ✅ GASTOS
 elif tipo == "Gasto":
     producto = st.text_input("Material / Producto")
     cantidad = st.number_input("Cantidad", min_value=1)
@@ -111,7 +105,7 @@ elif tipo == "Gasto":
 
 fecha = st.date_input("Fecha", value=date.today())
 
-# SAVE DATA
+# SAVE
 if st.button("Guardar"):
     nueva = pd.DataFrame([{
         "tipo": tipo,
@@ -131,7 +125,7 @@ if st.button("Guardar"):
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ✅ AFFICHAGE UNIQUEMENT SI DATA
+# ✅ DISPLAY ONLY IF DATA
 if len(df) > 0:
 
     # 📊 RESUMEN
@@ -142,27 +136,41 @@ if len(df) > 0:
     gastos = df["costo"].sum()
     beneficio_total = ingresos - gastos
 
-    st.metric("💰 Ingresos", f"${ingresos:.2f}")
-    st.metric("💸 Gastos", f"${gastos:.2f}")
-    st.metric("✅ Beneficio", f"${beneficio_total:.2f}")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("💰 Ingresos", f"${ingresos:.2f}")
+    col2.metric("💸 Gastos", f"${gastos:.2f}")
+    col3.metric("✅ Beneficio", f"${beneficio_total:.2f}")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 📈 GRAPH
+    # 📈 GRAPH FIXED
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.subheader("📈 Evolución diaria")
 
-    df["fecha"] = pd.to_datetime(df["fecha"])
-    daily = df.groupby("fecha").sum(numeric_only=True)
+    try:
+        df_copy = df.copy()
 
-    chart = pd.DataFrame({
-        "Ingresos": daily["monto"],
-        "Gastos": daily["costo"],
-        "Beneficio": daily["beneficio"]
-    })
+        df_copy["fecha"] = pd.to_datetime(df_copy["fecha"], errors="coerce")
+        df_copy = df_copy.dropna(subset=["fecha"])
 
-    st.line_chart(chart)
-    st.caption("🟢 Ingresos | 🔴 Gastos | 🔵 Beneficio")
+        if not df_copy.empty:
+            daily = df_copy.groupby("fecha").agg({
+                "monto": "sum",
+                "costo": "sum",
+                "beneficio": "sum"
+            }).reset_index()
+
+            daily = daily.set_index("fecha")
+            daily.columns = ["Ingresos", "Gastos", "Beneficio"]
+
+            st.line_chart(daily)
+            st.caption("🟢 Ingresos | 🔴 Gastos | 🔵 Beneficio")
+
+        else:
+            st.info("No hay datos suficientes para graficar")
+
+    except:
+        st.warning("⚠️ No se puede generar el gráfico todavía")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -172,21 +180,5 @@ if len(df) > 0:
     st.dataframe(df, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 📥 EXPORT CSV
+    # 📥 EXPORT
     csv = df.to_csv(index=False).encode("utf-8")
-
-    st.download_button(
-        "📥 Descargar backup",
-        csv,
-        "backup_tequenos.csv",
-        "text/csv"
-    )
-
-else:
-    st.info("📭 No hay datos todavía - empieza añadiendo tu primera transacción")
-
-# RESET
-if st.button("⚠️ Borrar todo"):
-    df = pd.DataFrame(columns=df.columns)
-    df.to_csv(FILE, index=False)
-    st.warning("Datos eliminados")
