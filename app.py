@@ -172,6 +172,3 @@ if st.button("⚠️ Borrar todo"):
     df = pd.DataFrame(columns=df.columns)
     df.to_csv(FILE, index=False)
     st.warning("Datos eliminados")
-
-
-Internal Use Only - Only for Proximus business use. See more on https://www.proximus.com/confidentiality
