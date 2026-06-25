@@ -3,7 +3,6 @@ import pandas as pd
 from datetime import date
 import os
 from io import BytesIO
-
 from reportlab.pdfgen import canvas
 from docx import Document
 
@@ -11,10 +10,14 @@ FILE = "data.csv"
 
 st.set_page_config(page_title="J&A Tequeños", layout="wide")
 
-# 🎨 DESIGN
+# 🎨 DESIGN PREMIUM
 st.markdown("""
 <style>
-body {background:#0F172A; color:white;}
+body {
+    background: linear-gradient(180deg, #020617, #0F172A);
+    color: #E2E8F0;
+}
+
 .logo {
     text-align:center;
     font-size:40px;
@@ -23,6 +26,7 @@ body {background:#0F172A; color:white;}
     -webkit-background-clip:text;
     -webkit-text-fill-color:transparent;
 }
+
 .banner {
     height:200px;
     background-image:url('https://domesticfits.com/wp-content/uploads/2023/06/venezuelan-food-Tequenos.jpg');
@@ -30,18 +34,38 @@ body {background:#0F172A; color:white;}
     border-radius:15px;
     margin-bottom:20px;
 }
+
 .card {
-    background:#1E293B;
+    background: linear-gradient(145deg,#1E293B,#111827);
     padding:20px;
     border-radius:15px;
     text-align:center;
+    transition:0.3s;
 }
+
+.card:hover {
+    transform:scale(1.05);
+}
+
 .value {
-    font-size:28px;
+    font-size:30px;
     font-weight:bold;
+    color:white;
 }
+
+.green {color:#22c55e;}
+.red {color:#ef4444;}
+.blue {color:#3b82f6;}
+
+.section {
+    background:#1E293B;
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:20px;
+}
+
 .stButton>button {
-    background:#22c55e;
+    background:linear-gradient(90deg,#22c55e,#15803d);
     color:white;
     border-radius:10px;
 }
@@ -49,12 +73,12 @@ body {background:#0F172A; color:white;}
 """, unsafe_allow_html=True)
 
 # HEADER
-st.markdown("<div class='logo'>J&A Tequeños</div>", unsafe_allow_html=True)
+st.markdown("<div class='logo'>🌮 J&A Tequeños</div>", unsafe_allow_html=True)
 st.markdown("<div class='banner'></div>", unsafe_allow_html=True)
 
-PRICES = {"Tequeños": 4, "Pasteles": 5}
+PRICES = {"Tequeños":4,"Pasteles":5}
 
-# LOAD
+# LOAD DATA
 if os.path.exists(FILE):
     df = pd.read_csv(FILE)
 else:
@@ -63,38 +87,47 @@ else:
 df = df.dropna(how="all")
 
 # FORM
+st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.subheader("➕ Nueva transacción")
 
-tipo = st.selectbox("Tipo", ["Venta","Gasto"])
+col1,col2 = st.columns(2)
 
-if tipo == "Venta":
-    producto = st.selectbox("Producto", ["Tequeños","Pasteles"])
-    cantidad = st.number_input("Cantidad", min_value=1)
+tipo = col1.selectbox("Tipo",["Venta","Gasto"])
+
+if tipo=="Venta":
+    producto = col1.selectbox("Producto",["Tequeños","Pasteles"])
+    cantidad = col2.number_input("Cantidad",min_value=1)
 
     precio = PRICES[producto]
     monto = cantidad * precio
 
+    st.success(f"Ingreso: ${monto}")
+
 else:
-    producto = st.text_input("Material")
-    cantidad = st.number_input("Cantidad", min_value=1)
-    precio = st.number_input("Precio", min_value=0.0)
+    producto = col1.text_input("Material")
+    cantidad = col2.number_input("Cantidad",min_value=1)
+    precio = col2.number_input("Precio",min_value=0.0)
 
     monto = cantidad * precio
+
+    st.warning(f"Gasto: ${monto}")
 
 fecha = st.date_input("Fecha", value=date.today())
 
 if st.button("Guardar"):
     new = pd.DataFrame([{
-        "tipo": tipo,
-        "producto": producto,
-        "cantidad": cantidad,
-        "precio_unitario": precio,
-        "monto": monto,
-        "fecha": fecha
+        "tipo":tipo,
+        "producto":producto,
+        "cantidad":cantidad,
+        "precio_unitario":precio,
+        "monto":monto,
+        "fecha":fecha
     }])
-    df = pd.concat([df,new], ignore_index=True)
+    df = pd.concat([df,new],ignore_index=True)
     df.to_csv(FILE,index=False)
     st.success("✅ Guardado")
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # DASHBOARD
 if len(df)>0:
@@ -103,66 +136,101 @@ if len(df)>0:
     gastos = df[df["tipo"]=="Gasto"]["monto"].sum()
     beneficio = ingresos - gastos
 
+    st.subheader("📊 Resumen")
+
     c1,c2,c3 = st.columns(3)
 
-    c1.metric("Ingresos", f"${ingresos:.2f}")
-    c2.metric("Gastos", f"${gastos:.2f}")
-    c3.metric("Beneficio", f"${beneficio:.2f}")
+    c1.markdown(f"""
+    <div class='card'><div class='blue'>Ingresos</div>
+    <div class='value'>${ingresos:.2f}</div></div>
+    """,unsafe_allow_html=True)
 
-    st.subheader("📊 Historial")
-    st.dataframe(df)
+    c2.markdown(f"""
+    <div class='card'><div class='red'>Gastos</div>
+    <div class='value'>${gastos:.2f}</div></div>
+    """,unsafe_allow_html=True)
 
-    # ✅ EXPORT EXCEL
+    c3.markdown(f"""
+    <div class='card'><div class='green'>Beneficio</div>
+    <div class='value'>${beneficio:.2f}</div></div>
+    """,unsafe_allow_html=True)
+
+    # GRAPH
+    st.subheader("📈 Evolución")
+
+    try:
+        df_copy = df.copy()
+        df_copy["fecha"] = pd.to_datetime(df_copy["fecha"])
+
+        daily = df_copy.groupby(["fecha","tipo"])["monto"].sum().unstack(fill_value=0)
+
+        if "Venta" not in daily: daily["Venta"]=0
+        if "Gasto" not in daily: daily["Gasto"]=0
+
+        daily["Beneficio"] = daily["Venta"] - daily["Gasto"]
+
+        daily = daily.rename(columns={
+            "Venta":"Ingresos",
+            "Gasto":"Gastos"
+        })
+
+        st.line_chart(daily)
+
+    except Exception as e:
+        st.error(e)
+
+    # HISTORIAL
+    st.subheader("📋 Historial")
+    st.dataframe(df,use_container_width=True)
+
+    # DELETE
+    st.subheader("🗑️ Eliminar entrada")
+
+    idx = st.number_input("Selecciona fila",0,len(df)-1,0)
+
+    if st.button("Eliminar"):
+        df=df.drop(index=idx)
+        df.to_csv(FILE,index=False)
+        st.success("✅ Eliminado")
+
+    # EXPORT
+    st.subheader("📥 Exportar datos")
+
+    # Excel
     excel = BytesIO()
-    df.to_excel(excel, index=False, engine='openpyxl')
+    df.to_excel(excel,index=False,engine='openpyxl')
 
-    st.download_button(
-        "📊 Descargar Excel",
-        excel.getvalue(),
-        "tequenos.xlsx"
-    )
+    st.download_button("Excel",excel.getvalue(),"data.xlsx")
 
-    # ✅ EXPORT PDF
+    # PDF
     pdf_buffer = BytesIO()
     p = canvas.Canvas(pdf_buffer)
 
-    y = 800
-    for i, row in df.iterrows():
-        text = f"{row['fecha']} - {row['tipo']} - {row['producto']} - ${row['monto']}"
-        p.drawString(30, y, text)
-        y -= 20
-
+    y=800
+    for i,row in df.iterrows():
+        p.drawString(30,y,str(row.values))
+        y-=20
     p.save()
 
-    st.download_button(
-        "📄 Descargar PDF",
-        pdf_buffer.getvalue(),
-        "tequenos.pdf"
-    )
+    st.download_button("PDF",pdf_buffer.getvalue(),"data.pdf")
 
-    # ✅ EXPORT WORD
+    # Word
     doc = Document()
-    doc.add_heading("Reporte J&A Tequeños")
+    doc.add_heading("Reporte J&A")
 
-    for i, row in df.iterrows():
-        doc.add_paragraph(
-            f"{row['fecha']} - {row['tipo']} - {row['producto']} - ${row['monto']}"
-        )
+    for i,row in df.iterrows():
+        doc.add_paragraph(str(row.values))
 
     word_buffer = BytesIO()
     doc.save(word_buffer)
 
-    st.download_button(
-        "📝 Descargar Word",
-        word_buffer.getvalue(),
-        "tequenos.docx"
-    )
+    st.download_button("Word",word_buffer.getvalue(),"data.docx")
 
 else:
-    st.info("No hay datos todavía")
+    st.info("📭 Sin datos todavía")
 
 # RESET
-if st.button("🗑️ Borrar todo"):
+if st.button("🗑️ Reset total"):
     if os.path.exists(FILE):
         os.remove(FILE)
-    st.success("Datos eliminados")
+    st.success("✅ Datos eliminados")
