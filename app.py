@@ -26,13 +26,15 @@ h1 {text-align:center; color:#22c55e;}
 </style>
 """, unsafe_allow_html=True)
 
+# HEADER
 st.markdown("<h1>🌮 Jeovanny Tequeños</h1>", unsafe_allow_html=True)
 st.caption("📊 Gestión financiera profesional")
 
+# 💰 PARAMÈTRES
 PRICES = {"Tequeños": 4, "Pasteles": 5}
 COSTS = {"Tequeños": 2, "Pasteles": 3}
 
-# ✅ LOAD DATA (PROPRE)
+# ✅ LOAD DATA PROPRE
 if os.path.exists(FILE):
     df = pd.read_csv(FILE)
 else:
@@ -41,15 +43,14 @@ else:
         "monto","costo","beneficio","fecha"
     ])
 
-# ✅ SUPER CLEAN DATA (IMPORTANT)
+# ✅ CLEAN DATA
 df = df.dropna(how="all")
 
-# 👉 enlève lignes invalides
 if "tipo" in df.columns:
     df = df[df["tipo"].notna()]
 
-# 👉 enlève lignes à 0
-df = df[df["monto"] != 0]
+if "monto" in df.columns:
+    df = df[df["monto"] != 0]
 
 # 📂 IMPORT CSV
 st.markdown("<div class='section'>", unsafe_allow_html=True)
@@ -60,11 +61,11 @@ uploaded_file = st.file_uploader("Subir archivo CSV", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     df.to_csv(FILE, index=False)
-    st.success("Datos cargados correctamente ✅")
+    st.success("✅ Datos cargados correctamente")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ➕ FORM
+# ➕ FORMULAIRE
 st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.subheader("➕ Nueva transacción")
 
@@ -89,13 +90,13 @@ if tipo == "Venta":
     costo = cantidad * costo_unit
     beneficio = monto - costo
 
-    st.info(f"Ingreso: ${monto}")
-    st.warning(f"Costo: ${costo}")
-    st.success(f"Ganancia: ${beneficio}")
+    st.info(f"💰 Ingreso: ${monto}")
+    st.warning(f"💸 Costo producción: ${costo}")
+    st.success(f"✅ Ganancia: ${beneficio}")
 
 # ✅ GASTO
 else:
-    producto = st.text_input("Material")
+    producto = st.text_input("Material / Producto")
     cantidad = st.number_input("Cantidad", min_value=1)
     precio = st.number_input("Precio unitario ($)", min_value=0.0)
 
@@ -103,11 +104,11 @@ else:
     costo = monto
     beneficio = -monto
 
-    st.warning(f"Gasto: ${monto}")
+    st.warning(f"💸 Gasto total: ${monto}")
 
 fecha = st.date_input("Fecha", value=date.today())
 
-# SAVE
+# 💾 SAVE
 if st.button("Guardar"):
     nueva = pd.DataFrame([{
         "tipo": tipo,
@@ -123,69 +124,80 @@ if st.button("Guardar"):
     df = pd.concat([df, nueva], ignore_index=True)
     df.to_csv(FILE, index=False)
 
-    st.success("✅ Guardado")
+    st.success("✅ Guardado correctamente")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
 # ✅ AFFICHAGE
 if len(df) > 0:
 
-    # RESUMEN
+    # 📊 RESUMEN
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.subheader("📊 Resumen")
 
     ingresos = df[df["tipo"] == "Venta"]["monto"].sum()
-    gastos = df["costo"].sum()
+    gastos = df["costo"].sum()  # ✅ inclut TOUT (production + dépense)
     beneficio_total = ingresos - gastos
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Ingresos", f"${ingresos:.2f}")
-    col2.metric("Gastos", f"${gastos:.2f}")
-    col3.metric("Beneficio", f"${beneficio_total:.2f}")
+    col1.metric("💰 Ingresos", f"${ingresos:.2f}")
+    col2.metric("💸 Gastos", f"${gastos:.2f}")
+    col3.metric("✅ Beneficio", f"${beneficio_total:.2f}")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # GRAPH FIXED
+    # 📈 GRAPH CORRIGÉ
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.subheader("📈 Evolución diaria")
 
     try:
         df_copy = df.copy()
+
         df_copy["fecha"] = pd.to_datetime(df_copy["fecha"], errors="coerce")
         df_copy = df_copy.dropna(subset=["fecha"])
 
         if not df_copy.empty:
+
             daily = df_copy.groupby("fecha").agg({
                 "monto": "sum",
-                "costo": "sum",
-                "beneficio": "sum"
+                "costo": "sum"
             }).reset_index()
 
+            # ✅ recalcul bénéfice réel
+            daily["beneficio"] = daily["monto"] - daily["costo"]
+
             daily = daily.set_index("fecha")
-            daily.columns = ["Ingresos", "Gastos", "Beneficio"]
+
+            daily.columns = ["Ingresos", "Gastos"]
+
+            # ✅ ajout bénéfice
+            daily["Beneficio"] = daily["Ingresos"] - daily["Gastos"]
 
             st.line_chart(daily)
+
+            st.caption("🟢 Ingresos | 🔴 Gastos (incluye producción) | 🔵 Beneficio")
+
         else:
             st.info("No hay datos suficientes")
 
     except:
-        st.warning("Error en gráfico")
+        st.warning("⚠️ Error en gráfico")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # HISTORIAL
+    # 📋 HISTORIAL
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.subheader("📋 Historial")
-    st.dataframe(df)
+    st.dataframe(df, use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # EXPORT
+    # 📥 EXPORT
     csv = df.to_csv(index=False).encode("utf-8")
 
     st.download_button(
         "📥 Descargar backup",
         csv,
-        "backup.csv",
+        "backup_tequenos.csv",
         "text/csv"
     )
 
@@ -196,5 +208,4 @@ else:
 if st.button("🗑️ Borrar todos los datos"):
     if os.path.exists(FILE):
         os.remove(FILE)
-    df = pd.DataFrame(columns=df.columns)
     st.success("✅ Datos eliminados completamente")
