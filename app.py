@@ -42,7 +42,6 @@ body {
     text-align:center;
     transition:0.3s;
 }
-
 .card:hover {
     transform:scale(1.05);
 }
@@ -72,13 +71,13 @@ body {
 </style>
 """, unsafe_allow_html=True)
 
-# HEADER
+# ✅ HEADER
 st.markdown("<div class='logo'>🌮 J&A Tequeños</div>", unsafe_allow_html=True)
 st.markdown("<div class='banner'></div>", unsafe_allow_html=True)
 
 PRICES = {"Tequeños":4,"Pasteles":5}
 
-# LOAD DATA
+# ✅ LOAD DATA
 if os.path.exists(FILE):
     df = pd.read_csv(FILE)
 else:
@@ -86,7 +85,20 @@ else:
 
 df = df.dropna(how="all")
 
-# FORM
+# ✅ IMPORT CSV (RESTORE)
+st.markdown("<div class='section'>", unsafe_allow_html=True)
+st.subheader("📂 Restaurar datos")
+
+uploaded_file = st.file_uploader("Subir backup CSV")
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+    df.to_csv(FILE, index=False)
+    st.success("✅ Datos restaurados correctamente")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# ✅ FORM
 st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.subheader("➕ Nueva transacción")
 
@@ -125,11 +137,11 @@ if st.button("Guardar"):
     }])
     df = pd.concat([df,new],ignore_index=True)
     df.to_csv(FILE,index=False)
-    st.success("✅ Guardado")
+    st.success("✅ Guardado correctamente")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# DASHBOARD
+# ✅ DISPLAY
 if len(df)>0:
 
     ingresos = df[df["tipo"]=="Venta"]["monto"].sum()
@@ -155,7 +167,7 @@ if len(df)>0:
     <div class='value'>${beneficio:.2f}</div></div>
     """,unsafe_allow_html=True)
 
-    # GRAPH
+    # ✅ GRAPH
     st.subheader("📈 Evolución")
 
     try:
@@ -179,58 +191,58 @@ if len(df)>0:
     except Exception as e:
         st.error(e)
 
-    # HISTORIAL
+    # ✅ HISTORIAL
     st.subheader("📋 Historial")
-    st.dataframe(df,use_container_width=True)
+    st.dataframe(df, use_container_width=True)
 
-    # DELETE
+    # ✅ DELETE ONE LINE
     st.subheader("🗑️ Eliminar entrada")
 
-    idx = st.number_input("Selecciona fila",0,len(df)-1,0)
+    idx = st.number_input("Número de fila", 0, len(df)-1, 0)
 
     if st.button("Eliminar"):
-        df=df.drop(index=idx)
-        df.to_csv(FILE,index=False)
-        st.success("✅ Eliminado")
+        df = df.drop(index=idx)
+        df.to_csv(FILE, index=False)
+        st.success("✅ Entrada eliminada")
 
-    # EXPORT
-    st.subheader("📥 Exportar datos")
+    # ✅ EXPORT + BACKUP
+    st.subheader("💾 Seguridad y exportación")
+
+    st.warning("⚠️ Descarga tus datos regularmente para evitar pérdidas")
+
+    csv = df.to_csv(index=False).encode("utf-8")
+
+    st.download_button("📥 Backup CSV", csv, "backup.csv")
 
     # Excel
     excel = BytesIO()
     df.to_excel(excel,index=False,engine='openpyxl')
-
-    st.download_button("Excel",excel.getvalue(),"data.xlsx")
+    st.download_button("📊 Excel",excel.getvalue(),"data.xlsx")
 
     # PDF
     pdf_buffer = BytesIO()
     p = canvas.Canvas(pdf_buffer)
-
     y=800
     for i,row in df.iterrows():
         p.drawString(30,y,str(row.values))
         y-=20
     p.save()
-
-    st.download_button("PDF",pdf_buffer.getvalue(),"data.pdf")
+    st.download_button("📄 PDF",pdf_buffer.getvalue(),"data.pdf")
 
     # Word
-    doc = Document()
+    doc=Document()
     doc.add_heading("Reporte J&A")
-
     for i,row in df.iterrows():
         doc.add_paragraph(str(row.values))
-
-    word_buffer = BytesIO()
+    word_buffer=BytesIO()
     doc.save(word_buffer)
-
-    st.download_button("Word",word_buffer.getvalue(),"data.docx")
+    st.download_button("📝 Word",word_buffer.getvalue(),"data.docx")
 
 else:
-    st.info("📭 Sin datos todavía")
+    st.info("📭 No hay datos todavía")
 
-# RESET
+# ✅ RESET TOTAL
 if st.button("🗑️ Reset total"):
     if os.path.exists(FILE):
         os.remove(FILE)
-    st.success("✅ Datos eliminados")
+    st.success("✅ Datos eliminados completamente")
