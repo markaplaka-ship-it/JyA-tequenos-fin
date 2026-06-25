@@ -28,22 +28,21 @@ h1 {text-align:center; color:#22c55e;}
 
 # HEADER
 st.markdown("<h1>🌮 Jeovanny Tequeños</h1>", unsafe_allow_html=True)
-st.caption("📊 Gestión financiera profesional")
+st.caption("📊 Gestión financiera simple")
 
-# 💰 PARAMÈTRES
+# 💰 PRICES (uniquement pour calcul ventes)
 PRICES = {"Tequeños": 4, "Pasteles": 5}
-COSTS = {"Tequeños": 2, "Pasteles": 3}
 
-# ✅ LOAD DATA PROPRE
+# ✅ LOAD DATA
 if os.path.exists(FILE):
     df = pd.read_csv(FILE)
 else:
     df = pd.DataFrame(columns=[
         "tipo","producto","cantidad","precio_unitario",
-        "monto","costo","beneficio","fecha"
+        "monto","fecha"
     ])
 
-# ✅ CLEAN DATA
+# ✅ CLEAN
 df = df.dropna(how="all")
 
 if "tipo" in df.columns:
@@ -65,7 +64,7 @@ if uploaded_file:
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ➕ FORMULAIRE
+# ➕ FORM
 st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.subheader("➕ Nueva transacción")
 
@@ -75,40 +74,30 @@ producto = ""
 cantidad = 0
 precio = 0.0
 monto = 0.0
-costo = 0.0
-beneficio = 0.0
 
-# ✅ VENTA
+# ✅ VENTA (juste calcul revenu)
 if tipo == "Venta":
     producto = st.selectbox("Producto", ["Tequeños", "Pasteles"])
     cantidad = st.number_input("Cantidad", min_value=1)
 
     precio = PRICES[producto]
-    costo_unit = COSTS[producto]
-
     monto = cantidad * precio
-    costo = cantidad * costo_unit
-    beneficio = monto - costo
 
     st.info(f"💰 Ingreso: ${monto}")
-    st.warning(f"💸 Costo producción: ${costo}")
-    st.success(f"✅ Ganancia: ${beneficio}")
 
-# ✅ GASTO
+# ✅ GASTO (tout est manuel maintenant)
 else:
     producto = st.text_input("Material / Producto")
     cantidad = st.number_input("Cantidad", min_value=1)
     precio = st.number_input("Precio unitario ($)", min_value=0.0)
 
     monto = cantidad * precio
-    costo = monto
-    beneficio = -monto
 
     st.warning(f"💸 Gasto total: ${monto}")
 
 fecha = st.date_input("Fecha", value=date.today())
 
-# 💾 SAVE
+# SAVE
 if st.button("Guardar"):
     nueva = pd.DataFrame([{
         "tipo": tipo,
@@ -116,8 +105,6 @@ if st.button("Guardar"):
         "cantidad": cantidad,
         "precio_unitario": precio,
         "monto": monto,
-        "costo": costo,
-        "beneficio": beneficio,
         "fecha": fecha
     }])
 
@@ -128,7 +115,7 @@ if st.button("Guardar"):
 
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ✅ AFFICHAGE
+# ✅ DISPLAY
 if len(df) > 0:
 
     # 📊 RESUMEN
@@ -136,17 +123,17 @@ if len(df) > 0:
     st.subheader("📊 Resumen")
 
     ingresos = df[df["tipo"] == "Venta"]["monto"].sum()
-    gastos = df["costo"].sum()  # ✅ inclut TOUT (production + dépense)
-    beneficio_total = ingresos - gastos
+    gastos = df[df["tipo"] == "Gasto"]["monto"].sum()
+    beneficio = ingresos - gastos
 
     col1, col2, col3 = st.columns(3)
     col1.metric("💰 Ingresos", f"${ingresos:.2f}")
     col2.metric("💸 Gastos", f"${gastos:.2f}")
-    col3.metric("✅ Beneficio", f"${beneficio_total:.2f}")
+    col3.metric("✅ Beneficio", f"${beneficio:.2f}")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # 📈 GRAPH CORRIGÉ
+    # 📈 GRAPH PRO
     st.markdown("<div class='section'>", unsafe_allow_html=True)
     st.subheader("📈 Evolución diaria")
 
@@ -158,30 +145,32 @@ if len(df) > 0:
 
         if not df_copy.empty:
 
-            daily = df_copy.groupby("fecha").agg({
-                "monto": "sum",
-                "costo": "sum"
-            }).reset_index()
+            daily = df_copy.groupby(["fecha","tipo"])["monto"].sum().unstack(fill_value=0)
 
-            # ✅ recalcul bénéfice réel
-            daily["beneficio"] = daily["monto"] - daily["costo"]
+            # ✅ garantir colonnes
+            if "Venta" not in daily:
+                daily["Venta"] = 0
+            if "Gasto" not in daily:
+                daily["Gasto"] = 0
 
-            daily = daily.set_index("fecha")
+            # ✅ calcul bénéfice
+            daily["Beneficio"] = daily["Venta"] - daily["Gasto"]
 
-            daily.columns = ["Ingresos", "Gastos"]
-
-            # ✅ ajout bénéfice
-            daily["Beneficio"] = daily["Ingresos"] - daily["Gastos"]
+            # rename pour affichage
+            daily = daily.rename(columns={
+                "Venta":"Ingresos",
+                "Gasto":"Gastos"
+            })
 
             st.line_chart(daily)
 
-            st.caption("🟢 Ingresos | 🔴 Gastos (incluye producción) | 🔵 Beneficio")
+            st.caption("🟢 Ingresos | 🔴 Gastos | 🔵 Beneficio")
 
         else:
             st.info("No hay datos suficientes")
 
-    except:
-        st.warning("⚠️ Error en gráfico")
+    except Exception as e:
+        st.error(f"Error gráfico: {e}")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -204,7 +193,7 @@ if len(df) > 0:
 else:
     st.info("📭 No hay datos todavía")
 
-# ✅ RESET TOTAL (SUPPRESSION FICHIER)
+# RESET
 if st.button("🗑️ Borrar todos los datos"):
     if os.path.exists(FILE):
         os.remove(FILE)
