@@ -5,24 +5,35 @@ import os
 
 FILE = "data.csv"
 
-st.set_page_config(page_title="Tequeños Business", layout="wide")
+st.set_page_config(page_title="J&A Tequeños", layout="wide")
 
-# 🎨 DESIGN ULTRA PRO
+# 🎨 DESIGN PREMIUM + ANIMATIONS
 st.markdown("""
 <style>
-
 body {
     background: linear-gradient(180deg, #020617, #0F172A);
     color: #E2E8F0;
 }
 
-/* HEADER */
-h1 {
+/* LOGO */
+.logo {
     text-align: center;
-    font-size: 2.5em;
-    background: linear-gradient(90deg, #22c55e, #3b82f6);
+    font-size: 42px;
+    font-weight: bold;
+    background: linear-gradient(90deg,#22c55e,#3b82f6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    margin-bottom:10px;
+}
+
+/* BANNER */
+.banner {
+    height: 200px;
+    background-image: url('https://domesticfits.com/wp-content/uploads/2023/06/venezuelan-food-Tequenos.jpg');
+    background-size: cover;
+    background-position: center;
+    border-radius: 15px;
+    margin-bottom: 20px;
 }
 
 /* CARDS */
@@ -32,12 +43,19 @@ h1 {
     border-radius: 15px;
     text-align: center;
     box-shadow: 0px 5px 20px rgba(0,0,0,0.3);
+    transition: 0.3s;
 }
 
-/* VALUE */
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
+}
+
+/* VALUES */
 .value {
-    font-size: 28px;
+    font-size: 30px;
     font-weight: bold;
+    color: white;
 }
 
 /* COLORS */
@@ -45,31 +63,36 @@ h1 {
 .red { color: #ef4444; }
 .blue { color: #3b82f6; }
 
-/* BUTTON */
-.stButton>button {
-    background: linear-gradient(90deg, #22c55e, #15803d);
-    color: white;
-    border-radius: 12px;
-    height: 45px;
-    font-weight: bold;
-    border: none;
+/* SECTION */
+.section {
+    background:#1E293B;
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:20px;
 }
 
-/* TABLE */
-[data-testid="stDataFrame"] {
-    border-radius: 10px;
+/* BUTTON */
+.stButton>button {
+    background: linear-gradient(90deg,#22c55e,#15803d);
+    color:white;
+    border-radius:12px;
+    height:45px;
+    font-weight:bold;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# HEADER
-st.markdown("<h1>🌮 Jeovanny Tequeños Dashboard</h1>", unsafe_allow_html=True)
-st.caption("📊 Gestión financiera profesional")
+# ✅ LOGO
+st.markdown("<div class='logo'>J&amp;A Tequeños</div>", unsafe_allow_html=True)
+st.caption("🔥 Gestión financiera profesional")
+
+# ✅ BANNER
+st.markdown("<div class='banner'></div>", unsafe_allow_html=True)
 
 PRICES = {"Tequeños": 4, "Pasteles": 5}
 
-# LOAD
+# LOAD DATA
 if os.path.exists(FILE):
     df = pd.read_csv(FILE)
 else:
@@ -77,16 +100,17 @@ else:
 
 df = df.dropna(how="all")
 
-# ➕ FORMULAIRE
+# ➕ FORM
+st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.subheader("➕ Nueva transacción")
 
-colA, colB = st.columns(2)
+col1, col2 = st.columns(2)
 
-tipo = colA.selectbox("Tipo", ["Venta", "Gasto"])
+tipo = col1.selectbox("Tipo", ["Venta", "Gasto"])
 
 if tipo == "Venta":
-    producto = colA.selectbox("Producto", ["Tequeños", "Pasteles"])
-    cantidad = colB.number_input("Cantidad", min_value=1)
+    producto = col1.selectbox("Producto", ["Tequeños", "Pasteles"])
+    cantidad = col2.number_input("Cantidad", min_value=1)
 
     precio = PRICES[producto]
     monto = cantidad * precio
@@ -94,9 +118,9 @@ if tipo == "Venta":
     st.success(f"💰 Ingreso: ${monto}")
 
 else:
-    producto = colA.text_input("Material")
-    cantidad = colB.number_input("Cantidad", min_value=1)
-    precio = colB.number_input("Precio", min_value=0.0)
+    producto = col1.text_input("Material")
+    cantidad = col2.number_input("Cantidad", min_value=1)
+    precio = col2.number_input("Precio", min_value=0.0)
 
     monto = cantidad * precio
 
@@ -118,6 +142,8 @@ if st.button("Guardar"):
     df.to_csv(FILE, index=False)
 
     st.success("✅ Guardado")
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ✅ DASHBOARD
 if len(df) > 0:
@@ -154,35 +180,46 @@ if len(df) > 0:
     # 📈 GRAPH
     st.subheader("📈 Evolución")
 
-    try:
-        df_copy = df.copy()
-        df_copy["fecha"] = pd.to_datetime(df_copy["fecha"])
+    df_copy = df.copy()
+    df_copy["fecha"] = pd.to_datetime(df_copy["fecha"])
 
-        daily = df_copy.groupby(["fecha","tipo"])["monto"].sum().unstack(fill_value=0)
+    daily = df_copy.groupby(["fecha","tipo"])["monto"].sum().unstack(fill_value=0)
 
-        if "Venta" not in daily:
-            daily["Venta"] = 0
-        if "Gasto" not in daily:
-            daily["Gasto"] = 0
+    if "Venta" not in daily:
+        daily["Venta"] = 0
+    if "Gasto" not in daily:
+        daily["Gasto"] = 0
 
-        daily["Beneficio"] = daily["Venta"] - daily["Gasto"]
+    daily["Beneficio"] = daily["Venta"] - daily["Gasto"]
 
-        daily = daily.rename(columns={"Venta":"Ingresos", "Gasto":"Gastos"})
+    daily = daily.rename(columns={"Venta":"Ingresos", "Gasto":"Gastos"})
 
-        st.line_chart(daily)
+    st.line_chart(daily)
 
-    except Exception as e:
-        st.error(e)
-
-    # HISTORIAL
+    # 📋 HISTORIAL + DELETE
     st.subheader("📋 Historial")
-    st.dataframe(df)
+
+    st.dataframe(df, use_container_width=True)
+
+    st.subheader("🗑️ Eliminar una entrada")
+
+    index_to_delete = st.number_input(
+        "Número de fila a eliminar",
+        min_value=0,
+        max_value=len(df)-1,
+        step=1
+    )
+
+    if st.button("Eliminar"):
+        df = df.drop(index=index_to_delete)
+        df.to_csv(FILE, index=False)
+        st.success("✅ Entrada eliminada")
 
 else:
     st.info("📭 Sin datos todavía")
 
-# RESET
-if st.button("🗑️ Reset"):
+# RESET TOTAL
+if st.button("🗑️ Reset total"):
     if os.path.exists(FILE):
         os.remove(FILE)
     st.success("✅ Datos eliminados")
